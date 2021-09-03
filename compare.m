@@ -1,24 +1,19 @@
 clear;
 clc;
-% close all;
 
-load('experiment_data20170613.mat')
+load('Data210903.mat')
 OriData = OriData(201:600,:);
-InitTemp = OriData(:,2);         %  x1  unsterilized medium temperature
-Speed = OriData(:,3);            %  x2  medium flow rate
-SteamTemp = OriData(:,4);        %  x3  steam temperature
-% Output = OriData(:,5);           
+InitTemp = OriData(:,2);         %  x1  
+Speed = OriData(:,3);            %  x2  
+SteamTemp = OriData(:,4);        %  x3  
 Multi = OriData(:,1);            
 x1 = Speed;
 x2 = InitTemp;
 x3 = SteamTemp;
 
-% x1(240) = x1(240)+16.8;
-x1(329) = x1(329)+5.8;
+x1(325) = x1(325)+5.8;
 x2(56) = x2(56)+36.8;
 x2(200) = x2(200)-8.8;
-% x2(350) = x1(350)-14.8;
-% x3(90) = x3(90)+16.8;
 x3(230) = x3(230)-6.8;
 
 figure(1)
@@ -37,7 +32,6 @@ y_r = 124*ones(400,1);
 
 % noise
 e = 0.01*randn(1,N);
-% e(29) = -4;
 e(88) = -4.4;
 e(114) = 3.6;
 e(146) = 8;
@@ -69,11 +63,7 @@ for k = 2:398
     K(:,k) = P(:,:,k)*phi(:,k)*inv(0.01+phi(:,k)'*P(:,:,k)*phi(:,k));
     theta_hat(:,k+1) = theta_hat(:,k)+K(:,k)*(y(k+1)-theta_hat(:,k)'*phi(:,k));
     P(:,:,k+1) = (eye(6)-K(:,k)*phi(:,k)')*P(:,:,k);
-
-    %%%%%%  CE
-%     u(k+1) = (y_r(k+2)-(theta_hat(2:6,k+1)'*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]))/theta_hat(1,k+1);
-    
-    %%%  BDC
+ 
     u(k+1) = -((P(1,2:6,k+1)+theta_hat(1,k+1)*theta_hat(2:6,k+1)')*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]-theta_hat(1,k+1)*y_r(k+2))/(P(1,1,k+1) +theta_hat(1,k+1)^2+gamma);
     flag = u(k+1)*P(1,1,k+1)+P(1,2:6,k+1)*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)];
         if flag>=0
@@ -88,16 +78,15 @@ for k = 2:398
 end
 
 y_BDC_no = y;
-% plot(y_CE,'b');hold on;
 plot(y,'y','linewidth',2,'color',[1.00,0.85,0.00]);hold on;
-outlier_k = [56; 88; 114; 146; 200; 253; 256; 230; 329];
+outlier_k = [56; 88; 114; 146; 200; 253; 256; 230; 325];
 outlierplot = zeros(1,400);
 plot(outlier_k, outlierplot(outlier_k),'*r','linewidth',2);hold off;
 axis([0 400 0 180])
 set(gca,'FontSize',14,'Fontname', 'Times New Roman');
 xlabel('k','fontsize',14); % x
-ylabel('Data','fontsize',14); % y
-legend('T_m','R_m','T_s','y(k)')
+ylabel('Data with Outliers','fontsize',14); % y
+legend('T_m','R_m','T_s','T_{out}')
 grid on;
 
 
@@ -112,10 +101,8 @@ theta = [ 0.0049; 0.9840; 0.0091; 0.0035; 0.0042; 0.0016 ];
 %  reference
 y_r = 124*ones(400,1);
 
-% noise
 %%%%% outlier %%%%%
 e = 0.01*randn(1,N);
-% e(29) = -4;
 e(88) = -4.4;
 e(114) = 3.6;
 e(146) = 8;
@@ -137,18 +124,15 @@ P(:,:,2) = 100*eye(6);
 u(2) = (y_r(3)-(theta_hat(2:6,2)'*[ y(2); y(1); x1(2); x2(2); x3(2)]))/theta_hat(1,2);
 u(2) = 1;
 phi(:,2) = [u(2); y(2); y(1); x1(2); x2(2); x3(2)];
-% phi(:,2) = [60; y(2); y(1); x1(2); x2(2); x3(2)];
 lamda=0.01;
 gamma = 0;
 
 %outlier detection set
 Dimension = 4;              %
 
-% eta
 eta_dist = 3.8;
 eta_direct =1.55;  %2
 
-% 
 dist_store(1) = 0.1;  %  
 direct_store(:,1) = [0.1; 0.1; 0.1; 0.1];  % 
 nonOutlier = 2;
@@ -190,18 +174,16 @@ for k = 2:398
                 end     
         end      
 
-         % 
+         
         BoundUp_dist = END+eta_dist*delta_d;
         BoundDown_dist = END-eta_dist*delta_d;       
         
         dist_up(k) = BoundUp_dist;
         dist_do(k) = BoundDown_dist;
         
-         % 
         dist_real = norm([y(k+1); x1(k+1); x2(k+1); x3(k+1)]-[y(k); x1(k); x2(k); x3(k)]);        
         dis_real_p(k) = dist_real;
         
-        % 
         flag_dist=0;
         if dist_real<BoundDown_dist  ||  dist_real>BoundUp_dist
             flag_dist = 1;
@@ -209,11 +191,10 @@ for k = 2:398
             criti_dis(i_dis) = k;
         end      
 
-    %%%%%   
-             direct_store(:,k) = ([y(k); x1(k); x2(k); x3(k)]-[y(k-1); x1(k-1); x2(k-1); x3(k-1)])/(0.00000001+norm([y(k); x1(k); x2(k); x3(k)]-[y(k-1); x1(k-1); x2(k-1); x3(k-1)]));  %
-             delta_v = std(direct_store(:,1:k),0,2);      %  
+  
+             direct_store(:,k) = ([y(k); x1(k); x2(k); x3(k)]-[y(k-1); x1(k-1); x2(k-1); x3(k-1)])/(0.00000001+norm([y(k); x1(k); x2(k); x3(k)]-[y(k-1); x1(k-1); x2(k-1); x3(k-1)]));  %方向
+             delta_v = std(direct_store(:,1:k),0,2);      % 
 
-            % 
             ENDV=zeros(Dimension,1);
             if k>=11        
                     for i = k-10:k
@@ -230,17 +211,15 @@ for k = 2:398
                     end            
             end
 
-            %
             BoundUp_direct = ENDV+eta_direct*delta_v;
             BoundDown_direct = ENDV-eta_direct*delta_v;  
 
             dir_up(:,k) = BoundUp_direct;
             dir_do(:,k) = BoundDown_direct;
 
-            %
             direct_real = ([y(k+1); x1(k+1); x2(k+1); x3(k+1)]-[y(k); x1(k); x2(k); x3(3)])/norm([y(k+1); x1(k+1); x2(k+1); x3(k+1)]-[y(k); x1(k); x2(k); x3(k)]);
              dir_real_p(:,k) = direct_real;
-        %
+
         flag_direct=0;
         for i=1:Dimension
             if direct_real(i)<BoundDown_direct(i)  || direct_real(i)>BoundUp_direct(i) 
@@ -264,7 +243,6 @@ for k = 2:398
             end         
         end    
 
-                % 
             if flag_dist==1 &&flag_direct==1
                 a=a+1;
                 outlier(a)=k+1;   
@@ -284,10 +262,6 @@ for k = 2:398
     theta_hat(:,k+1) = theta_hat(:,k)+K(:,k)*(y(k+1)-theta_hat(:,k)'*phi(:,k));
     P(:,:,k+1) = (eye(6)-K(:,k)*phi(:,k)')*P(:,:,k);
 
-%%%%  CE
-%     u(k+1) = (y_r(k+2)-(theta_hat(2:6,k+1)'*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]))/theta_hat(1,k+1);
-
-%%%  BDC
     u(k+1) = -((P(1,2:6,k+1)+theta_hat(1,k+1)*theta_hat(2:6,k+1)')*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]-theta_hat(1,k+1)*y_r(k+2))/(P(1,1,k+1) +theta_hat(1,k+1)^2+gamma);
     flag = u(k+1)*P(1,1,k+1)+P(1,2:6,k+1)*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)];
         if flag>=0
@@ -300,7 +274,7 @@ for k = 2:398
     phi(:,k+1) = [u(k+1); y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)];
     
 end
-outlier_x = 100*ones(1,a);
+outlier_x = 123*ones(1,a);
 y_BDC_online = y;
 figure(2)
 ref = 124*ones(1,400);
@@ -310,14 +284,6 @@ plot(y_BDC_online,'g','linewidth',2,'color',[0.07,0.88,0.10]);hold on;
 
 %% BDC+MA
 clear u  y theta_hat phi K P;
-
-% x1(240) = x1(240)+16.8;
-x1(329) = x1(329)+5.8;
-x2(56) = x2(56)+36.8;
-x2(200) = x2(200)-8.8;
-% x2(350) = x1(350)-14.8;
-% x3(90) = x3(90)+16.8;
-x3(230) = x3(230)-6.8;
 
 N = 400;
 
@@ -339,7 +305,6 @@ e(256) = 2.4;
 
 % parameter estimation
 theta_hat(:,2) = [0.01; 0.01; 0.01; 0.01; 0.01; 0.01];
-% theta_hat(:,2) = [ 0.0049; 0.9840; 0.0091; 0.0035; 0.0042; 0.0016 ];
 
 % initial value
 u = 0*ones(1,400);
@@ -353,18 +318,16 @@ P(:,:,2) = 100*eye(6);
 u(2) = (y_r(3)-(theta_hat(2:6,2)'*[ y(2); y(1); x1(2); x2(2); x3(2)]))/theta_hat(1,2);
 u(2) = 1;
 phi(:,2) = [u(2); y(2); y(1); x1(2); x2(2); x3(2)];
-% phi(:,2) = [60; y(2); y(1); x1(2); x2(2); x3(2)];
+
 lamda=0.01;
 gamma = 0;
 
 %outlier detection set
-Dimension = 4;              %
+Dimension = 4;         
 
-%
 eta_dist = 3.8;
 eta_direct =1.55;  %2
 
-%
 dist_store(1) = 0.1;  
 direct_store(:,1) = [0.1; 0.1; 0.1; 0.1];  
 nonOutlier = 2;
@@ -385,7 +348,6 @@ for k = 2:398
     y_real(k+1) = theta'*phi(:,k);
     y(k+1) = y_real(k+1)+e(k);
 
-%%%%%%%%%%%%%  Moving Average   %%%%%%%%%%%%%
     if k>=21
         for nn = 1:10
             y(k+1) = y(k+1-nn)+y(k+1);
@@ -404,10 +366,6 @@ for k = 2:398
     theta_hat(:,k+1) = theta_hat(:,k)+K(:,k)*(y(k+1)-theta_hat(:,k)'*phi(:,k));
     P(:,:,k+1) = (eye(6)-K(:,k)*phi(:,k)')*P(:,:,k);
 
-%%%%  CE
-%     u(k+1) = (y_r(k+2)-(theta_hat(2:6,k+1)'*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]))/theta_hat(1,k+1);
-
-%%%  BDC
     u(k+1) = -((P(1,2:6,k+1)+theta_hat(1,k+1)*theta_hat(2:6,k+1)')*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]-theta_hat(1,k+1)*y_r(k+2))/(P(1,1,k+1) +theta_hat(1,k+1)^2+gamma);
     flag = u(k+1)*P(1,1,k+1)+P(1,2:6,k+1)*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)];
         if flag>=0
@@ -421,18 +379,10 @@ for k = 2:398
     
 end
 y_BDC_MA = y;
-plot(y_BDC_MA,'--y','linewidth',2,'color',[1.00,0.85,0.00]);hold on;
+plot(y_BDC_MA,'-.y','linewidth',2);hold on;
 
 %% BDC+MH
 clear u  y theta_hat phi K P;
-
-% x1(240) = x1(240)+16.8;
-x1(329) = x1(329)+5.8;
-x2(56) = x2(56)+36.8;
-x2(200) = x2(200)-8.8;
-% x2(350) = x1(350)-14.8;
-% x3(90) = x3(90)+16.8;
-x3(230) = x3(230)-6.8;
 
 N = 400;
 
@@ -467,20 +417,18 @@ P(:,:,2) = 100*eye(6);
 u(2) = (y_r(3)-(theta_hat(2:6,2)'*[ y(2); y(1); x1(2); x2(2); x3(2)]))/theta_hat(1,2);
 u(2) = 1;
 phi(:,2) = [u(2); y(2); y(1); x1(2); x2(2); x3(2)];
-% phi(:,2) = [60; y(2); y(1); x1(2); x2(2); x3(2)];
 lamda=0.01;
 gamma = 0;
 
 %outlier detection set
-Dimension = 4;              %
+Dimension = 4;           
 
-% 
 eta_dist = 3.8;
 eta_direct =1.55;  %2
 
-%
-dist_store(1) = 0.1;  % 
-direct_store(:,1) = [0.1; 0.1; 0.1; 0.1];  % 
+
+dist_store(1) = 0.1; 
+direct_store(:,1) = [0.1; 0.1; 0.1; 0.1]; 
 nonOutlier = 2;
 flag_dist=0;
 flag_direct=0;
@@ -500,7 +448,6 @@ for k = 2:398
     y(k+1) = y_real(k+1)+e(k);
     delta_y(k+1) = (y(k+1)-theta_hat(:,k)'*phi(:,k))^2;
 
-%%%%%%%%%%%%%  Moving Horizon   %%%%%%%%%%%%%
     J_MH(:,1) = zeros(5,1);
     if k>=21
         sum = delta_y(k+1)+delta_y(k)+delta_y(k-1)+delta_y(k-2)+delta_y(k-3);
@@ -518,10 +465,6 @@ for k = 2:398
     theta_hat(:,k+1) = theta_hat(:,k)+K(:,k)*(y(k+1)-theta_hat(:,k)'*phi(:,k));
     P(:,:,k+1) = (eye(6)-K(:,k)*phi(:,k)')*P(:,:,k);
 
-%%%%  CE
-%     u(k+1) = (y_r(k+2)-(theta_hat(2:6,k+1)'*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]))/theta_hat(1,k+1);
-
-%%%  BDC
     u(k+1) = -((P(1,2:6,k+1)+theta_hat(1,k+1)*theta_hat(2:6,k+1)')*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)]-theta_hat(1,k+1)*y_r(k+2))/(P(1,1,k+1) +theta_hat(1,k+1)^2+gamma);
     flag = u(k+1)*P(1,1,k+1)+P(1,2:6,k+1)*[ y(k+1); y(k); x1(k+1); x2(k+1); x3(k+1)];
         if flag>=0
@@ -537,10 +480,10 @@ end
 y_BDC_MH = y;
 plot(y_BDC_MH,':m','linewidth',2);hold on;
 plot(outlier, outlier_x,'*r','linewidth',2);hold off;
-axis([0 400 100 145])
+axis([0 400 123 125])
 set(gca,'FontSize',14,'Fontname', 'Times New Roman');
-xlabel('k','fontsize',14); % 
-ylabel('y(k)','fontsize',14); % 
+xlabel('k','fontsize',14); 
+ylabel('y(k)','fontsize',14); 
 legend('reference','without outlier detection','online outlier detection','moving average', 'robust moving horizon','outliers')
 grid on;
 
